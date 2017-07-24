@@ -22,22 +22,23 @@ Note: the java file has 3 parameters:
 ## Create containers
 
 It is important to create at least two containers, inside the folder flink execute the command bellow:
-> > docker build -t flink_custom .
+> docker build -t flink_custom .
 
 and the second container:
-> > docker build tweets . 
+> docker build -t tweets . 
 
 The next containers will be download in the official repository
 
 Note: It is important to give all permisions in the folder elastic because the data of elastic search will be save there. 
-> > chmod 777 elastic
+> chmod 777 elastic
 
 ## Run containers
 
 Before start the big bang is important to add your twitter credentials in docker-compose.yaml file, then:
-> > ./up.sh
+> ./up.sh
 
-Before start the project and all containers,  
+Before start the project and all containers.  
+
 # Technologies involve in 
  - Flink (1 jobmanager; 3 taskmanager)
  - Kafka (3 partitions 2 replicas )
