@@ -10,7 +10,7 @@ Welcome! The project is a big data solution to get all news and olds tweets from
 
 ## Java file
 Use this command in the shell to Compile Java file: 
-> > mvn clean compile assembly:single
+> mvn clean compile assembly:single
 
 Then copy the file generated inside the folder flink and tweets. The file should be rename in __ToElastic.jar__ inside the folder __flink__ and inside the folder __tweets__ rename to __tweets.jar__ 
 
