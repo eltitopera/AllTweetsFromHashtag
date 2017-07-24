@@ -1,0 +1,122 @@
+version: '3.2'
+
+services:
+  tweets:
+    image: tweets
+    environment:
+      twitter4j.debug: 'true'
+      twitter4j.oauth.consumerKey: <consumerKey>
+      twitter4j.oauth.consumerSecret: <consumerSecret>
+      twitter4j.oauth.accessToken: <accessToken>
+      twitter4j.oauth.accessTokenSecret: <accessTokenSecret>
+      jsonStoreEnabled: 'true'
+    deploy:
+      restart_policy:
+        condition: any
+    
+  zookeeper:
+    image: zookeeper
+    ports:
+      - 2181:2181
+    deploy:
+      restart_policy:
+        condition: any
+
+  kafka:
+    image: wurstmeister/kafka:0.10.2.1
+    environment:
+      KAFKA_ADVERTISED_PORT: 9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CREATE_TOPICS: tweets:3:2
+    ports:
+      - 9092
+
+    depends_on:
+      - zookeeper
+
+
+  jobmanager:
+    image: flink_custom
+    expose:
+      - "6123"
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+    volumes:
+      - ./flink/files/:/opt/flink/files/
+
+    depends_on:
+      - zookeeper
+      - kafka
+      - elasticsearch1
+
+  taskmanager:
+    image: flink
+    expose:
+      - "6121"
+      - "6122"
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    links:
+      - "jobmanager:jobmanager"
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+    volumes:
+      - ./flink/files/:/opt/flink/files/
+
+    depends_on:
+      - zookeeper
+      - kafka
+      - elasticsearch1
+
+  elasticsearch1:
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.5.0
+    container_name: elasticsearch1
+    environment:
+      http.host: 0.0.0.0
+      transport.host: 0.0.0.0
+      cluster.name: 'master'
+      bootstrap.memory_lock: 'true'
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+      xpack.security.enabled: "false"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      mem_limit: 1g
+    volumes:
+      - ./elastic/esdata1:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+
+  elasticsearch2:
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.5.0
+    environment:
+      cluster.name: 'master'
+      bootstrap.memory_lock: 'true'
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+      discovery.zen.ping.unicast.hosts: 'elasticsearch1'
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      mem_limit: 1g
+    volumes:
+      - ./elastic/esdata2:/usr/share/elasticsearch/data
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:5.4.3
+    depends_on:
+      - elasticsearch1
+    environment:
+      xpack.security.enabled: "false"
+      ELASTICSEARCH_URL: http://elasticsearch1:9200/
+    ports:
+      - 80:5601
+    deploy:
+      restart_policy:
+        condition: any
+
