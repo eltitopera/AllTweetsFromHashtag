@@ -13,11 +13,6 @@ Use this command in the shell to Compile Java file:
 > mvn clean compile assembly:single
 
 Then copy the file generated inside the folder flink and tweets. The file should be rename in __ToElastic.jar__ inside the folder __flink__ and inside the folder __tweets__ rename to __tweets.jar__ 
-
-Note: the java file has 3 parameters:
- - -o get all old tweets  
- - -s get the new tweets (streaming)
- - -a get old and new tweets 
  
 ## Create containers
 
@@ -26,6 +21,14 @@ It is important to create at least two containers, inside the folder flink execu
 
 and the second container:
 > docker build -t tweets . 
+
+In docker-compose.yaml file you can add the hashtags to listen in the enviroment variable "hashtag" inside twitter service.
+> hashtags: #JuevesDeArquitectura, #Arquitectura
+
+and config the mode, there are three modes:
+ - __all__ get old and new tweets 
+ - __stream__ the new tweets (streaming)
+ - __old__ get all old tweets 
 
 The next containers will be download in the official repository
 
