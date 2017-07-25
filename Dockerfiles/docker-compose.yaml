@@ -10,6 +10,8 @@ services:
       twitter4j.oauth.accessToken: <accessToken>
       twitter4j.oauth.accessTokenSecret: <accessTokenSecret>
       jsonStoreEnabled: 'true'
+      hashtags: #JuevesDeArquitectura, #Arquitectura
+      mode: all
     deploy:
       restart_policy:
         condition: any
