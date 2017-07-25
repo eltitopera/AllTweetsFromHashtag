@@ -1,7 +1,7 @@
 # AllTweetsFromHashtag
 Welcome! The project is a big data solution to get all news and olds tweets from specific hashtags in order display the data in Kibana.
 
-
+![alt text](https://github.com/eltitopera/AllTweetsFromHashtag/blob/master/diagram.jpg)
 # Prerequisites
  - Maven to deploy de src files 
  - docker && docker-compose to start the containers.
