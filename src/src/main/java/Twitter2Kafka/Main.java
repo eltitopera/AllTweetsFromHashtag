@@ -205,36 +205,32 @@
 package Twitter2Kafka;
 
 
-import scala.Array;
 import twitter4j.TwitterException;
-
-import java.util.Arrays;
 
 public class Main {
 
     public static void main(String[] args) throws TwitterException, InterruptedException {
-        System.out.print("GO");
-        if (args.length > 1) {
+        System.out.println("GO");
+        if (System.getenv("hashtags").length() > 0) {
 
-            String comand = args[0];
-            String[] hashtag = new String[args.length-1];
+            String mode = System.getenv("mode");
+            String[] hashtag = System.getenv("hashtags").split(",");
 
 
             //Check Last Tweet from this hashtag
-            for(int i = 1; i < args.length; i++) {
-                System.out.println(i + " : " + args[i]);
-                hashtag[i-1] = args[i];
+            for(int i = 0; i < hashtag.length; i++) {
+                System.out.println(i + " : " + hashtag[i]);
             }
 
             ServiceTweets service = new ServiceTweets();
 
-            if(comand.contains("-a") || comand.contains("-o"))
+            if(mode.equals("all") || mode.equals("old"))
                 //Get all tweets until today
                 service.getOldTweets(hashtag);
 
             System.out.println("################################### STREAM ###################################");
 
-            if(comand.contains("-a") || comand.contains("-s") )
+            if(mode.equals("all") || mode.equals("stream") )
                 //Streaming new tweets
                 service.streamHashTag(hashtag);
 
