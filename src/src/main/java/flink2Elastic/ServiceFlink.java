@@ -204,7 +204,12 @@
 
 package flink2Elastic;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import opennlp.tools.namefind.NameFinderME;
+import opennlp.tools.namefind.TokenNameFinderModel;
+import opennlp.tools.tokenize.SimpleTokenizer;
+import opennlp.tools.tokenize.Tokenizer;
+import opennlp.tools.util.Span;
+import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -216,14 +221,14 @@ import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer08;
 import org.apache.flink.streaming.util.serialization.SimpleStringSchema;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Requests;
+import org.json.JSONArray;
 import org.json.JSONObject;
-import org.mortbay.util.ajax.JSON;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.util.*;
 
 public class ServiceFlink implements Serializable {
@@ -245,6 +250,16 @@ public class ServiceFlink implements Serializable {
         /* get from kafka values */
         DataStream<String> dataStream = env.addSource(new FlinkKafkaConsumer08<String>("tweets", new SimpleStringSchema(), getConfigurationConsumer()));
 
+        DataStream<String> dt = dataStream.map(new MapFunction<String, String>() {
+            @Override
+            public String map(String s) throws Exception {
+                JSONObject json = new JSONObject(s);
+                json.put("new_location", getEntitiesFromText(json.get("text").toString(),"files/es-ner-location.bin"));
+                json.put("new_orgs", getEntitiesFromText(json.get("text").toString(),"files/es-ner-organization.bin"));
+                json.put("new_person", getEntitiesFromText(json.get("text").toString(),"files/es-ner-person.bin"));
+                return json.toString();
+            }
+        });
 
         Map<String, String> config = new HashMap<String, String>();
         config.put("bulk.flush.max.actions", "1");
@@ -254,9 +269,8 @@ public class ServiceFlink implements Serializable {
         transports.add(new InetSocketAddress(InetAddress.getByName("elasticsearch1"), 9300));
 
         /* save in elastic */
-        dataStream.addSink(new ElasticsearchSink<String>(config, transports, new ElasticsearchSinkFunction<String>() {
+        dt.addSink(new ElasticsearchSink<String>(config, transports, new ElasticsearchSinkFunction<String>() {
             public IndexRequest createIndexRequest(String element) {
-
 
                 return Requests.indexRequest()
                         .index("twitter")
@@ -286,5 +300,31 @@ public class ServiceFlink implements Serializable {
         props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         return props;
+    }
+
+    private JSONArray getEntitiesFromText(String text, String PathFile) throws IOException {
+
+        String[] textStr = text.split(",");
+        JSONArray entities = new JSONArray();
+
+        TokenNameFinderModel modelPerson = new TokenNameFinderModel(new File(PathFile));
+        NameFinderME finderPerson = new NameFinderME(modelPerson);
+        Tokenizer tokenizer = SimpleTokenizer.INSTANCE;
+
+        for (String sentence : textStr) {
+
+            String[] tokens = tokenizer.tokenize(sentence);
+            Span[] namePer = finderPerson.find(tokens);
+
+            System.out.println("Entities: " + Arrays.toString(Span.spansToStrings(namePer, tokens)));
+
+            String[] ent = Span.spansToStrings(namePer, tokens);
+
+            for (String aux : ent) {
+                entities.put(aux);
+            }
+        }
+
+        return entities;
     }
 }
